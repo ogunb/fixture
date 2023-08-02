@@ -25,7 +25,7 @@ model Team {
 
 model Fixture {
   id         Int      @unique
-  date  DateTime
+  date       DateTime
   homeTeamId Int
   homeTeam   Team     @relation("homeTeam", fields: [homeTeamId], references: [id])
   awayTeamId Int

@@ -79,20 +79,13 @@ export async function saveNextFiveMatches(teamId: number) {
   const fixture = await fetchNextFiveMatches(teamId);
 
   for (const match of fixture) {
-    const [homeTeam, awayTeam] = await Promise.all([
-      getTeam(match.teams.home.id),
-      getTeam(match.teams.away.id),
-    ]);
+    const againstTeamId = match.teams.home.id === teamId ? match.teams.away.id : match.teams.home.id;
+    const isAgainstTeamSaved = await getTeam(againstTeamId);
 
-    const missingTeamId = !homeTeam
-      ? match.teams.home.id
-      : !awayTeam
-      ? match.teams.away.id
-      : null;
-
-    if (missingTeamId) {
-      const teams = await fetchTeams({ id: missingTeamId });
+    if (!isAgainstTeamSaved) {
+      const teams = await fetchTeams({ id: againstTeamId });
       await saveMissingTeams(teams);
+      // Make sure the new team is saved before saving the fixture
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
