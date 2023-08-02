@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { filterTeams } from "./service";
 
-export async function GET() {
-  return NextResponse.json([
-    {
-      id: 'asdasd',
-      name: "Team 1",
-    },
-    {
-      id: 'asdfasdfsdf',
-      name: "Team 2",
-    },
-  ]);
-}
+export async function GET(request: NextRequest) {
+  const query = request.nextUrl.searchParams.get("name");
+  const follow = request.nextUrl.searchParams.get("follow") || null;
+  const is_following = follow === null ? null : JSON.parse(follow);
 
-export async function POST(request: NextRequest) {
-  return NextResponse.json({})
+  if (!query)
+    return NextResponse.json(
+      await filterTeams({
+        is_following,
+      })
+    );
+
+  return NextResponse.json(await filterTeams({ name: query, is_following }));
 }

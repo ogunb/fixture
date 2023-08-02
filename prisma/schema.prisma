@@ -1,0 +1,22 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id           Int     @unique
+  name_slug    String
+  name         String  @unique
+  country      String?
+  logo         String?
+  founded      Int?
+  national     Boolean @default(false)
+  is_following Boolean @default(false)
+}

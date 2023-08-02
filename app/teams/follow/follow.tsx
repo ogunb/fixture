@@ -8,13 +8,9 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { debounce } from "@/lib/utils";
-
-type Team = {
-  id: string;
-  name: string;
-};
+import { Team } from "@prisma/client";
 
 const selectedTeamClasses = "border-lime-500 border border-dotted";
 
@@ -23,16 +19,31 @@ export default function Select() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [input, setInput] = useState("");
 
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        setIsFetching(true);
+        const response = await fetch(`/teams`);
+        const data = await response.json();
+        setTeams(data);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    fetchTeams();
+  }, []);
+
   const handleInput = debounce(async (value: string) => {
     try {
-      setInput(value);
-      if (!value) {
-        setTeams([]);
-        return;
-      }
-
       setIsFetching(true);
-      const response = await fetch(`/teams?name=${value}`);
+      setInput(value);
+
+      const hasFollowKeyword = value.includes("follow");
+      const name = value.replace("follow", "").trim();
+      const response = await fetch(
+        `/teams?name=${name}&follow=${hasFollowKeyword || ""}`
+      );
       const data = await response.json();
       setTeams(data);
     } finally {
@@ -40,23 +51,28 @@ export default function Select() {
     }
   });
 
-  const handleSelect = async (id: string) => {
+  const handleTeamClick = async (team: Team) => {
     try {
-      await fetch(`/teams`, {
-        method: "POST",
-        body: JSON.stringify({ id }),
+      const follow = !team.is_following;
+
+      await fetch(`/teams/follow`, {
+        method: "PUT",
+        body: JSON.stringify({ teamId: team.id, follow }),
       });
 
-      const removed = teams.filter((team) => team.id !== id);
-      setTeams(removed);
+      setTeams(
+        teams.map((t) =>
+          t.id === team.id ? { ...t, is_following: follow } : t
+        )
+      );
     } finally {
       setIsFetching(false);
     }
   };
 
-  const isSelected = (team: Team) => {
-    // todo
-    return teams.some((t) => t.id === team.id);
+  const isFollowing = (team: Team) => {
+    console.log(team);
+    return team.is_following;
   };
 
   return (
@@ -70,10 +86,10 @@ export default function Select() {
           <CommandEmpty>No results found.</CommandEmpty>
           {teams.map((team) => (
             <CommandItem
-              className={isSelected(team) ? selectedTeamClasses : ""}
+              className={isFollowing(team) ? selectedTeamClasses : ""}
               key={team.id}
               value={team.name}
-              onSelect={handleSelect}
+              onSelect={() => handleTeamClick(team)}
             >
               {team.name}
             </CommandItem>
