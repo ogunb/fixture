@@ -71,7 +71,6 @@ export default function Select() {
   };
 
   const isFollowing = (team: Team) => {
-    console.log(team);
     return team.is_following;
   };
 
@@ -91,7 +90,7 @@ export default function Select() {
               value={team.id.toString()}
               onSelect={() => handleTeamClick(team)}
             >
-              {team.name} {team.code} {team.founded}{" "}
+              {team.name} {team.founded}{" "}
               {isFollowing(team) ? "- ✅" : ""}
             </CommandItem>
           ))}
