@@ -12,8 +12,8 @@ datasource db {
 
 model Team {
   id           Int     @unique
-  name_slug    String
-  name         String  @unique
+  name         String
+  code         String?
   country      String?
   logo         String?
   founded      Int?

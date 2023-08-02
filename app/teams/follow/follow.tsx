@@ -86,12 +86,13 @@ export default function Select() {
           <CommandEmpty>No results found.</CommandEmpty>
           {teams.map((team) => (
             <CommandItem
-              className={isFollowing(team) ? selectedTeamClasses : ""}
+              className={isFollowing(team) ? selectedTeamClasses : "border border-transparent"}
               key={team.id}
-              value={team.name}
+              value={team.id.toString()}
               onSelect={() => handleTeamClick(team)}
             >
-              {team.name}
+              {team.name} {team.code} {team.founded}{" "}
+              {isFollowing(team) ? "- ✅" : ""}
             </CommandItem>
           ))}
         </CommandGroup>

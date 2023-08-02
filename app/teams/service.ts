@@ -1,4 +1,5 @@
 import { prisma } from "@/db/client";
+import { fetchTeams } from "./api";
 import { Team } from "@prisma/client";
 
 export async function getTeams() {
@@ -6,14 +7,11 @@ export async function getTeams() {
 }
 
 type FilterParams = {
-  name?: string | null;
-  is_following?: boolean | null;
+  name?: string;
+  is_following?: boolean;
 };
-export async function filterTeams({
-  name = null,
-  is_following = null,
-}: FilterParams) {
-  return prisma.team.findMany({
+export async function filterTeams({ name, is_following }: FilterParams) {
+  const filtered = await prisma.team.findMany({
     where: {
       ...(name
         ? {
@@ -22,35 +20,40 @@ export async function filterTeams({
             },
           }
         : {}),
-      ...(is_following !== null
-        ? {
-            is_following,
-          }
-        : {}),
+      is_following: is_following ?? true,
     },
   });
+
+  if (!filtered.length && name) {
+    return filterMissingTeams(name);
+  }
+
+  return filtered;
 }
 
-// TODO
-export async function addTeam() {
-  const lastCreated = await prisma.team.findFirst({
-    orderBy: {
-      id: "desc",
-    },
-  });
+async function filterMissingTeams(name: string) {
+  const teams = await fetchTeams({ name });
+  const teamsToCreate = teams.map(({ team }) => ({
+    id: team.id,
+    name: team.name,
+    code: team.code,
+    logo: team.logo,
+    country: team.country,
+    founded: team.founded,
+    national: team.national,
+    is_following: false,
+  }));
 
-  const id = lastCreated ? lastCreated.id + 1 : 1;
+  for (const team of teamsToCreate) {
+    addTeam(team);
+  }
 
+  return teamsToCreate;
+}
+
+export async function addTeam(team: Team) {
   return prisma.team.create({
-    data: {
-      id,
-      name: `Team ${id}`,
-      name_slug: `team-${id}`,
-      country: "USA",
-      founded: 2021,
-      national: false,
-      logo: "https://via.placeholder.com/150",
-    },
+    data: team,
   });
 }
 
