@@ -1,4 +1,4 @@
-import Follow from './teams/follow/follow';
+import Follow from "./teams/follow/follow";
 
 export default function Home() {
   return (

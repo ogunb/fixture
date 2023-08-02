@@ -2,7 +2,7 @@ type FetchTeamsParams = {
   id?: number;
   name?: string;
 };
-type FetchTeamsResponse = {
+export type FetchTeamsResponse = {
   response: Array<{
     team: {
       id: number;

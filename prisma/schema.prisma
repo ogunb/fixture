@@ -11,12 +11,23 @@ datasource db {
 }
 
 model Team {
-  id           Int     @unique
+  id           Int       @unique
   name         String
   code         String?
   country      String?
   logo         String?
   founded      Int?
-  national     Boolean @default(false)
-  is_following Boolean @default(false)
+  national     Boolean   @default(false)
+  is_following Boolean   @default(false)
+  homeFixture  Fixture[] @relation("homeTeam")
+  awayFixture  Fixture[] @relation("awayTeam")
+}
+
+model Fixture {
+  id         Int      @unique
+  date  DateTime
+  homeTeamId Int
+  homeTeam   Team     @relation("homeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId Int
+  awayTeam   Team     @relation("awayTeam", fields: [awayTeamId], references: [id])
 }

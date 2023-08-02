@@ -1,9 +1,14 @@
 import { prisma } from "@/db/client";
-import { fetchTeams } from "./api";
+import { FetchTeamsResponse, fetchTeams } from "./api";
 import { Team } from "@prisma/client";
+import { fetchNextFiveMatches } from "./fixture/api";
 
-export async function getTeams() {
-  return prisma.team.findMany();
+export async function getTeam(id: number) {
+  return prisma.team.findUnique({
+    where: {
+      id,
+    },
+  });
 }
 
 type FilterParams = {
@@ -20,19 +25,19 @@ export async function filterTeams({ name, is_following }: FilterParams) {
             },
           }
         : {}),
-      is_following: is_following ?? true,
+      is_following: is_following,
     },
   });
 
   if (!filtered.length && name) {
-    return filterMissingTeams(name);
+    const teams = await fetchTeams({ name });
+    return saveMissingTeams(teams);
   }
 
   return filtered;
 }
 
-async function filterMissingTeams(name: string) {
-  const teams = await fetchTeams({ name });
+async function saveMissingTeams(teams: FetchTeamsResponse["response"]) {
   const teamsToCreate = teams.map(({ team }) => ({
     id: team.id,
     name: team.name,
@@ -45,20 +50,20 @@ async function filterMissingTeams(name: string) {
   }));
 
   for (const team of teamsToCreate) {
-    addTeam(team);
+    saveTeam(team);
   }
 
   return teamsToCreate;
 }
 
-export async function addTeam(team: Team) {
+export async function saveTeam(team: Team) {
   return prisma.team.create({
     data: team,
   });
 }
 
 export async function followTeam(teamId: number) {
-  return prisma.team.update({
+  await prisma.team.update({
     where: {
       id: teamId,
     },
@@ -66,6 +71,56 @@ export async function followTeam(teamId: number) {
       is_following: true,
     },
   });
+
+  await saveNextFiveMatches(teamId);
+}
+
+export async function saveNextFiveMatches(teamId: number) {
+  const fixture = await fetchNextFiveMatches(teamId);
+
+  for (const match of fixture) {
+    const [homeTeam, awayTeam] = await Promise.all([
+      getTeam(match.teams.home.id),
+      getTeam(match.teams.away.id),
+    ]);
+
+    const missingTeamId = !homeTeam
+      ? match.teams.home.id
+      : !awayTeam
+      ? match.teams.away.id
+      : null;
+
+    if (missingTeamId) {
+      const teams = await fetchTeams({ id: missingTeamId });
+      await saveMissingTeams(teams);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    const date = new Date(match.fixture.timestamp * 1000);
+
+    await prisma.fixture.upsert({
+      where: {
+        id: match.fixture.id,
+      },
+      update: {
+        date,
+      },
+      create: {
+        id: match.fixture.id,
+        date,
+        homeTeam: {
+          connect: {
+            id: match.teams.home.id,
+          },
+        },
+        awayTeam: {
+          connect: {
+            id: match.teams.away.id,
+          },
+        },
+      },
+    });
+  }
 }
 
 export async function unfollowTeam(teamId: number) {
