@@ -2,6 +2,10 @@ import { prisma } from "@/db/client";
 import { FetchTeamsResponse, fetchTeams } from "./api";
 import { Team } from "@prisma/client";
 import { fetchNextFiveMatches } from "./fixture/api";
+import {
+  cancelScheduledMatchMessage,
+  scheduleMatchMessage,
+} from "./fixture/service";
 
 export async function getTeam(id: number) {
   return prisma.team.findUnique({
@@ -79,7 +83,10 @@ export async function saveNextFiveMatches(teamId: number) {
   const fixture = await fetchNextFiveMatches(teamId);
 
   for (const match of fixture) {
-    const againstTeamId = match.teams.home.id === teamId ? match.teams.away.id : match.teams.home.id;
+    const againstTeamId =
+      match.teams.home.id === teamId
+        ? match.teams.away.id
+        : match.teams.home.id;
     const isAgainstTeamSaved = await getTeam(againstTeamId);
 
     if (!isAgainstTeamSaved) {
@@ -91,7 +98,17 @@ export async function saveNextFiveMatches(teamId: number) {
 
     const date = new Date(match.fixture.timestamp * 1000);
 
-    await prisma.fixture.upsert({
+    const hasMatch = await prisma.fixture.findUnique({
+      where: {
+        id: match.fixture.id,
+      },
+    });
+
+    if (hasMatch) {
+      cancelScheduledMatchMessage(match.fixture.id);
+    }
+
+    const saved = await prisma.fixture.upsert({
       where: {
         id: match.fixture.id,
       },
@@ -112,7 +129,13 @@ export async function saveNextFiveMatches(teamId: number) {
           },
         },
       },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+      },
     });
+
+    scheduleMatchMessage(saved);
   }
 }
 
