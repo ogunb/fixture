@@ -6,7 +6,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:16.-alpine as runner
+FROM node:16.17-alpine as runner
 WORKDIR /fixture
 COPY --from=builder /fixture/package.json .
 COPY --from=builder /fixture/package-lock.json .
