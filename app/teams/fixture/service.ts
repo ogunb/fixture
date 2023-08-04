@@ -25,6 +25,9 @@ type Match = Prisma.FixtureGetPayload<{
 export async function scheduleMatchMessage(match: Match) {
   try {
     console.log("Scheduling match:", JSON.stringify(match, null, 2));
+    if (scheduledFixtureJobs.has(match.id)) {
+      cancelScheduledMatchMessage(match.id);
+    }
 
     const job = schedule.scheduleJob(match.date, async () => {
       sendDiscordMatchReminder(match);
@@ -37,6 +40,7 @@ export async function scheduleMatchMessage(match: Match) {
 }
 
 export function cancelScheduledMatchMessage(matchId: number) {
+  console.log("Cancelling scheduled match:", matchId);
   const job = scheduledFixtureJobs.get(matchId);
   job?.cancel();
 }

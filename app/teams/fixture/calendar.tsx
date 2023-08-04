@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { getFormattedTime, isSameDate } from "@/lib/utils";
 
+export const revalidate = 30;
+
 function Logo({ src }: { src: string }) {
   return <img src={src} className="max-h-5" />;
 }

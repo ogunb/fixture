@@ -98,16 +98,6 @@ export async function saveNextFiveMatches(teamId: number) {
 
     const date = new Date(match.fixture.timestamp * 1000);
 
-    const hasMatch = await prisma.fixture.findUnique({
-      where: {
-        id: match.fixture.id,
-      },
-    });
-
-    if (hasMatch) {
-      cancelScheduledMatchMessage(match.fixture.id);
-    }
-
     const saved = await prisma.fixture.upsert({
       where: {
         id: match.fixture.id,
